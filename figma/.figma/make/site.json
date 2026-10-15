@@ -1,0 +1,10 @@
+{
+  "description": "Facilita a criação e visualização de protótipos de sistemas web, ajudando designers e desenvolvedores a planejar e apresentar projetos eficazmente.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
