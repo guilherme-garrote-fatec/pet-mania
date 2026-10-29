@@ -62,22 +62,10 @@ Não há dependências npm, etapas de compilação ou bibliotecas de frontend.
 Se desejar escolher o e-mail/nome do usuário inicial, passe-os ao comando de
 seed: `php database/seed.php admin@petmania.local "Nome da administradora"`.
 
-## Desenvolvimento local com SQLite (opcional)
-
-O SQLite permite executar o sistema sem instalar um servidor de banco. Habilite
-`pdo_sqlite` no PHP e adicione ao `.env`:
-
-```dotenv
-DB_DSN=sqlite:database/pet-mania.sqlite
-```
-
-O comando `php database/seed.php` cria as tabelas SQLite automaticamente na
-primeira execução e inicializa os dados. Para voltar a usar MySQL, remova
-`DB_DSN` e configure as variáveis MySQL descritas acima.
-
 ## Observações de operação
 
 - A conclusão de um atendimento cria receita, custo e comissão uma única vez.
+- Somente agendamentos pendentes (`Agendado`) podem ser editados ou cancelados.
 - A venda reduz o estoque na mesma transação que grava a venda e o financeiro.
 - Lançamentos financeiros automáticos são somente leitura; os manuais podem ser
   editados e removidos.
@@ -89,30 +77,113 @@ primeira execução e inicializa os dados. Para voltar a usar MySQL, remova
 
 ## Estrutura
 
+A aplicação é organizada em um núcleo compartilhado e em módulos por área de
+negócio. Cada módulo concentra consultas, regras e telas da sua área.
+
 ```text
 app/
-  actions.php       # Validação de entrada e regras de negócio
-  bootstrap.php     # Sessão, PDO, CSRF e helpers
-  views.php         # Telas, layout e formulários HTML
+  bootstrap.php        # Carrega o núcleo, o .env, o fuso horário e a sessão
+  core/
+    auth.php           # Usuário logado, login e logout
+    database.php       # Conexão PDO e helpers de consulta
+    env.php            # Leitura do arquivo .env
+    format.php         # Escape HTML, moeda, datas e textos UTF-8
+    http.php           # URLs, redirecionamentos e leitura segura da query string
+    modules.php        # Registro de módulos, ações e formulários
+    router.php         # Fluxo da requisição e despacho das ações POST
+    session.php        # Sessão, CSRF e mensagens flash
+    validation.php     # Validação dos dados enviados nos formulários
+  ui/
+    components.php     # Componentes HTML reutilizáveis
+    icons.php          # Ícones SVG
+    layout.php         # Login, layout autenticado, modal e página de erro
+  modules/
+    overview/          # Visão geral (painel inicial)
+    schedule/          # Agenda
+    clients/           # Clientes & Pets
+    products/          # Produtos e estoque
+    services/          # Serviços
+    sales/             # Vendas
+    finance/           # Financeiro
+    reports/           # Relatórios e exportação CSV
 database/
-  schema.sql        # Esquema MySQL/MariaDB
-  schema.sqlite.sql # Esquema SQLite de desenvolvimento
-  seed.php          # Criação da conta inicial e dados de demonstração
+  schema.sql           # Esquema MySQL/MariaDB
+  schema.sqlite.sql    # Esquema SQLite de desenvolvimento
+  seed.php             # Criação da conta inicial e dados de demonstração
 public/
-  index.php         # Entrada recomendada do servidor web
-  assets/css/       # Estilos responsivos
-  assets/js/        # Interações Vanilla JS
-index.php           # Roteamento e composição da aplicação
+  index.php            # Único ponto de entrada (document root)
+  assets/css/          # Estilos responsivos
+  assets/js/           # Interações Vanilla JS
+tests/
+  smoke.php            # Teste ponta a ponta de todos os módulos
 ```
+
+Cada módulo segue o mesmo formato:
+
+```text
+app/modules/<nome>/
+  module.php           # Definição: menu, página, ações, formulários e exportações
+  repository.php       # Consultas ao banco usadas pelo módulo (e por outros)
+  actions.php          # Ações POST: validação, gravação e redirecionamento
+  views.php            # Página e campos dos formulários em modal
+```
+
+### Criando um novo módulo
+
+1. Crie `app/modules/<nome>/module.php` devolvendo a definição do módulo:
+
+   ```php
+   <?php
+   declare(strict_types=1);
+
+   require_once __DIR__ . '/repository.php';
+   require_once __DIR__ . '/actions.php';
+   require_once __DIR__ . '/views.php';
+
+   return [
+       'label' => 'Fornecedores',         // título no menu e na página
+       'icon' => 'box',                   // ícone de app/ui/icons.php
+       'render' => 'render_suppliers',    // fn(PDO $pdo, array $user): string
+       'actions' => [                     // ações POST: fn(PDO $pdo): never
+           'save_supplier' => 'save_supplier_action',
+       ],
+       'forms' => [                       // abertos com ?modal=supplier[&id=N]
+           'supplier' => [
+               'title' => 'Novo fornecedor',
+               'description' => 'Cadastre um fornecedor.',
+               'action' => 'save_supplier',
+               'render' => 'render_supplier_form', // fn(PDO $pdo, ?array $record): string
+               'load' => 'find_supplier',          // fn(PDO $pdo, int $id): ?array
+           ],
+       ],
+       'exports' => [],                   // ?export=<formato>: fn(PDO $pdo): never
+   ];
+   ```
+
+2. Adicione o nome do módulo à constante `APP_MODULES` em `app/bootstrap.php`
+   (a ordem da lista é a ordem do menu).
+
+As ações recebem o token CSRF e a autenticação já verificados pelo roteador.
 
 ## Verificações
 
 Validar a sintaxe PHP:
 
 ```sh
-php -l index.php
-php -l app/bootstrap.php
-php -l app/actions.php
-php -l app/views.php
-php -l database/seed.php
+find app database public tests -name '*.php' -exec php -l {} \;
+```
+
+Executar o teste ponta a ponta (cria um banco SQLite temporário, executa o
+seed, sobe o servidor embutido e percorre telas e ações de todos os módulos):
+
+```sh
+php tests/smoke.php
+```
+
+Para executá-lo contra MySQL/MariaDB, use um banco vazio com o esquema
+importado:
+
+```sh
+SMOKE_DB_DSN="mysql:host=127.0.0.1;dbname=pet_mania_test;charset=utf8mb4" \
+DB_USER=petmania DB_PASSWORD=sua-senha php tests/smoke.php
 ```
