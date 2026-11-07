@@ -21,6 +21,8 @@ mkdir($workDir);
 $dsn = getenv('SMOKE_DB_DSN') ?: 'sqlite:' . $workDir . '/smoke.sqlite';
 $serverLog = $workDir . '/server.log';
 $env = ['DB_DSN' => $dsn, 'APP_TIMEZONE' => 'America/Sao_Paulo'] + getenv();
+// As datas geradas pelo teste precisam usar o mesmo fuso horário da aplicação.
+date_default_timezone_set('America/Sao_Paulo');
 
 $failures = 0;
 $checks = 0;
