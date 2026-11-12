@@ -3,23 +3,11 @@ declare(strict_types=1);
 
 function database_dsn(): string
 {
-    $dsn = getenv('DB_DSN');
-    if ($dsn === false || $dsn === '') {
-        $host = getenv('DB_HOST') ?: '127.0.0.1';
-        $port = getenv('DB_PORT') ?: '3306';
-        $name = getenv('DB_NAME') ?: 'pet_mania';
-        $charset = getenv('DB_CHARSET') ?: 'utf8mb4';
-        return "mysql:host={$host};port={$port};dbname={$name};charset={$charset}";
-    }
-
-    if (str_starts_with($dsn, 'sqlite:')) {
-        $sqlitePath = substr($dsn, strlen('sqlite:'));
-        $isAbsolute = str_starts_with($sqlitePath, '/') || preg_match('/^[A-Za-z]:[\\\\\/]/', $sqlitePath) === 1;
-        if ($sqlitePath !== ':memory:' && !$isAbsolute) {
-            $dsn = 'sqlite:' . APP_ROOT . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $sqlitePath);
-        }
-    }
-    return $dsn;
+    $host = getenv('DB_HOST') ?: '127.0.0.1';
+    $port = getenv('DB_PORT') ?: '3306';
+    $name = getenv('DB_NAME') ?: 'pet_mania';
+    $charset = getenv('DB_CHARSET') ?: 'utf8mb4';
+    return "mysql:host={$host};port={$port};dbname={$name};charset={$charset}";
 }
 
 function db(): PDO
@@ -39,10 +27,6 @@ function db(): PDO
             PDO::ATTR_EMULATE_PREPARES => false,
         ],
     );
-    if (db_driver($connection) === 'sqlite') {
-        // O SQLite só aplica as chaves estrangeiras quando habilitadas por conexão.
-        $connection->exec('PRAGMA foreign_keys = ON');
-    }
 
     return $connection;
 }
@@ -53,7 +37,7 @@ function db_driver(PDO $pdo): string
 }
 
 /**
- * Cláusula de bloqueio de linha para leituras dentro de transações (o SQLite já bloqueia o banco inteiro).
+ * Cláusula de bloqueio de linha para leituras dentro de transações.
  */
 function lock_clause(PDO $pdo): string
 {

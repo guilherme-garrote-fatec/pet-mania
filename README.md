@@ -62,19 +62,6 @@ Não há dependências npm, etapas de compilação ou bibliotecas de frontend.
 Se desejar escolher o e-mail/nome do usuário inicial, passe-os ao comando de
 seed: `php database/seed.php admin@petmania.local "Nome da administradora"`.
 
-## Desenvolvimento local com SQLite (opcional)
-
-O SQLite permite executar o sistema sem instalar um servidor de banco. Habilite
-`pdo_sqlite` no PHP e adicione ao `.env`:
-
-```dotenv
-DB_DSN=sqlite:database/pet-mania.sqlite
-```
-
-O comando `php database/seed.php` cria as tabelas SQLite automaticamente na
-primeira execução e inicializa os dados. Para voltar a usar MySQL, remova
-`DB_DSN` e configure as variáveis MySQL descritas acima.
-
 ## Observações de operação
 
 - A conclusão de um atendimento cria receita, custo e comissão uma única vez.

@@ -17,9 +17,7 @@ function render_schedule(PDO $pdo, array $user): string
       <input type="hidden" name="page" value="schedule">
       <input type="hidden" name="date" value="<?= e($date) ?>">
       <label class="search-box"><?= icon('search', 17) ?><input type="search" name="q" value="<?= e($query) ?>" placeholder="Buscar pet, tutor ou serviço..."></label>
-      <label class="filter-select"><span>Status</span><select name="status" onchange="this.form.submit()"><?php foreach ($statuses as $option): ?><option<?= $status === $option ? ' selected' : '' ?>><?= e($option) ?></option><?php endforeach; ?></select></label>
       <div class="segmented"><?php foreach (['Todos', 'Agendado', 'Em andamento', 'Concluído'] as $option): ?><a class="<?= $status === $option ? 'active' : '' ?>" href="<?= e(page_url('schedule', ['date' => $date, 'status' => $option, 'q' => $query])) ?>"><?= e($option) ?></a><?php endforeach; ?></div>
-      <button class="button button--secondary" type="submit">Filtrar</button>
     </form>
     <article class="panel schedule-panel">
       <div class="date-nav"><a class="icon-button" href="<?= e(page_url('schedule', ['date' => $previous, 'status' => $status, 'q' => $query])) ?>" aria-label="Dia anterior">‹</a><label><?= icon('calendar', 17) ?><input type="date" value="<?= e($date) ?>" data-date-navigation></label><a class="icon-button" href="<?= e(page_url('schedule', ['date' => $next, 'status' => $status, 'q' => $query])) ?>" aria-label="Próximo dia">›</a><span><?= count($rows) ?> atendimento(s)</span></div>
